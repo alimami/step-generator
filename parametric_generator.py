@@ -16,24 +16,40 @@ import copy
 from collections import defaultdict
 from step_parser import parse_step_file, extract_refs, extract_cartesian_coords
 
-# Template registry (supports portable deployment and local fallback)
+# Template registry (supports root directory, templates/ subdir, and fallback)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def _resolve_template_path(m, n, default_filename, media_filename):
+    candidates = [
+        os.path.join(BASE_DIR, default_filename),
+        os.path.join(BASE_DIR, 'templates', default_filename),
+        os.path.join(BASE_DIR, media_filename),
+        os.path.join(BASE_DIR, 'templates', media_filename),
+        os.path.join(BASE_DIR, default_filename.lower()),
+        os.path.join(BASE_DIR, 'templates', default_filename.lower()),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    try:
+        for fname in os.listdir(BASE_DIR):
+            fl = fname.lower()
+            if fl.endswith('.stp') or fl.endswith('.step'):
+                if f"{m}x{n}" in fl:
+                    return os.path.join(BASE_DIR, fname)
+    except Exception:
+        pass
+    win_fallback = os.path.join('C:/Users/lion/.gemini/antigravity/brain/72edf0fd-246c-46c9-b742-1d19eb47c407/.user_uploaded', media_filename)
+    if os.path.exists(win_fallback):
+        return win_fallback
+    return candidates[0]
+
 TEMPLATES = {
-    (3, 4): os.path.join(BASE_DIR, 'templates', '3X4_01.stp'),
-    (4, 7): os.path.join(BASE_DIR, 'templates', '4X7_01.stp'),
-    (4, 8): os.path.join(BASE_DIR, 'templates', '4X8_02.stp'),
-    (5, 9): os.path.join(BASE_DIR, 'templates', '5X9_06.stp'),
+    (3, 4): _resolve_template_path(3, 4, '3X4_01.stp', 'media_1794256214054_fb0e9ed9.stp'),
+    (4, 7): _resolve_template_path(4, 7, '4X7_01.stp', 'media_1794256214056_ca35692b.stp'),
+    (4, 8): _resolve_template_path(4, 8, '4X8_02.stp', 'media_1794708170118_a8972a9f.stp'),
+    (5, 9): _resolve_template_path(5, 9, '5X9_06.stp', 'media_1794708170119_970eb8e6.stp'),
 }
-# Local Windows fallback if templates/ not in current working dir
-_FALLBACK_MAP = {
-    (3, 4): 'C:/Users/lion/.gemini/antigravity/brain/72edf0fd-246c-46c9-b742-1d19eb47c407/.user_uploaded/media_1794256214054_fb0e9ed9.stp',
-    (4, 7): 'C:/Users/lion/.gemini/antigravity/brain/72edf0fd-246c-46c9-b742-1d19eb47c407/.user_uploaded/media_1794256214056_ca35692b.stp',
-    (4, 8): 'C:/Users/lion/.gemini/antigravity/brain/72edf0fd-246c-46c9-b742-1d19eb47c407/.user_uploaded/media_1794708170118_a8972a9f.stp',
-    (5, 9): 'C:/Users/lion/.gemini/antigravity/brain/72edf0fd-246c-46c9-b742-1d19eb47c407/.user_uploaded/media_1794708170119_970eb8e6.stp',
-}
-for _k, _p in list(TEMPLATES.items()):
-    if not os.path.exists(_p) and os.path.exists(_FALLBACK_MAP.get(_k, '')):
-        TEMPLATES[_k] = _FALLBACK_MAP[_k]
 
 # Physical pitch constants (in meters)
 ROW_PITCH_X = -0.5060       # -506 mm per row
