@@ -1,0 +1,2 @@
+# Parametric STEP Generator
+# Zero external pip packages required. Built on standard Python 3.8+ library.
